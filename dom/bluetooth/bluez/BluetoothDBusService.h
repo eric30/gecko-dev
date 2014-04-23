@@ -45,6 +45,8 @@ public:
   BluetoothDBusService();
   ~BluetoothDBusService();
 
+  void Dump(nsACString& description);
+
   bool IsReady();
 
   virtual nsresult StartInternal() MOZ_OVERRIDE;

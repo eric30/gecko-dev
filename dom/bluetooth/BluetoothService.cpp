@@ -35,6 +35,8 @@
 #include "nsServiceManagerUtils.h"
 #include "nsXPCOM.h"
 
+#include "nsIStatusReporter.h"
+
 #if defined(MOZ_WIDGET_GONK)
 #include "cutils/properties.h"
 #endif
@@ -77,6 +79,19 @@ bool gBluetoothDebugFlag = false;
 using namespace mozilla;
 using namespace mozilla::dom;
 USING_BLUETOOTH_NAMESPACE
+
+static int status_reporter_progress = 1;
+static BluetoothDBusService* s;
+
+nsresult getState(nsACString &desc)
+{
+  s->Dump(desc);
+
+  return NS_OK;
+}
+
+NS_STATUS_REPORTER_IMPLEMENT(Bluetooth, "Bluetooth", getState)
+
 
 namespace {
 
@@ -248,8 +263,15 @@ BluetoothService::Create()
     return BluetoothServiceChildProcess::Create();
   }
 
+  if(status_reporter_progress == 1) {
+    NS_RegisterStatusReporter(new NS_STATUS_REPORTER_NAME(Bluetooth));
+  }
+
+  status_reporter_progress = 2;
+
 #if defined(MOZ_B2G_BT_BLUEZ)
-  return new BluetoothDBusService();
+  s = new BluetoothDBusService();
+  return s;
 #elif defined(MOZ_B2G_BT_BLUEDROID)
   return new BluetoothServiceBluedroid();
 #endif
@@ -844,3 +866,4 @@ BluetoothService::Notify(const BluetoothSignal& aData)
   systemMessenger->BroadcastMessage(type, value,
                                     JS::UndefinedHandleValue);
 }
+

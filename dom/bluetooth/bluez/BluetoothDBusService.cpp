@@ -67,6 +67,11 @@ using namespace mozilla;
 using namespace mozilla::ipc;
 USING_BLUETOOTH_NAMESPACE
 
+static bool visible = false;
+static bool discovering = false;
+static nsString deviceAddress;
+static nsString deviceName;
+
 #define B2G_AGENT_CAPABILITIES "DisplayYesNo"
 #define DBUS_MANAGER_IFACE BLUEZ_DBUS_BASE_IFC  ".Manager"
 #define DBUS_ADAPTER_IFACE BLUEZ_DBUS_BASE_IFC  ".Adapter"
@@ -893,6 +898,14 @@ GetProperty(DBusMessageIter aIter, const Properties* aPropertyTypes,
       const char* c;
       dbus_message_iter_get_basic(&prop_val, &c);
       propertyValue = NS_ConvertUTF8toUTF16(c);
+
+      if (propertyName.EqualsLiteral("Address")) {
+        BT_LOGR("address");
+        deviceAddress = NS_ConvertUTF8toUTF16(c);
+      } else if (propertyName.EqualsLiteral("Name")) {
+        BT_LOGR("name");
+        deviceName = NS_ConvertUTF8toUTF16(c);
+      }
       break;
     case DBUS_TYPE_UINT32:
     case DBUS_TYPE_INT16:
@@ -2579,12 +2592,14 @@ BluetoothDBusService::SendSinkMessage(const nsAString& aDeviceAddress,
 nsresult
 BluetoothDBusService::StopDiscoveryInternal(BluetoothReplyRunnable* aRunnable)
 {
+  discovering = false;
   return SendDiscoveryMessage("StopDiscovery", aRunnable);
 }
 
 nsresult
 BluetoothDBusService::StartDiscoveryInternal(BluetoothReplyRunnable* aRunnable)
 {
+  discovering = true;
   return SendDiscoveryMessage("StartDiscovery", aRunnable);
 }
 
@@ -2945,6 +2960,11 @@ BluetoothDBusService::SetProperty(BluetoothObjectType aType,
   }
 
   Task* task;
+
+  if (aValue.name().EqualsLiteral("Discoverable")) {
+    BT_LOGR("SetProperty: discoverable");
+    visible = aValue.value().get_bool();
+  }
 
   if (aValue.value().type() == BluetoothValue::Tuint32_t) {
     task = new SetUInt32PropertyTask(aType,
@@ -4189,4 +4209,63 @@ BluetoothDBusService::UpdateNotification(ControlEventId aEventId,
 
   Task* task = new UpdateNotificationTask(deviceAddress, aEventId, aData);
   DispatchToDBusThread(task);
+}
+
+void
+BluetoothDBusService::Dump(nsACString& desc)
+{
+  BT_LOGR("GetState!");
+
+  // ON/OFF
+  desc += "Bluetooth ON/OFF: ";
+
+  if (IsEnabled()) {
+    desc += "ON";
+  } else {
+    desc += "OFF";
+  }
+
+  desc += "/\r/\n";
+
+  // device address
+  desc += "Local device address: ";
+
+  if (deviceAddress.IsEmpty()) {
+    desc += "not available now";
+  } else {
+    desc += NS_ConvertUTF16toUTF8(deviceAddress).get();
+  }
+
+  desc += "/\r/\n";
+
+  // device name
+  desc += "Local device name: ";
+
+  if (deviceName.IsEmpty()) {
+    desc += "not available now";
+  } else {
+    desc += NS_ConvertUTF16toUTF8(deviceName).get();
+  }
+
+  desc += "/\r/\n";
+
+  // visibility
+  desc += "Visibility: ";
+
+  if (visible) {
+    desc += "visible";
+  } else {
+    desc += "invisible";
+  }
+
+  desc += "/\r/\n";
+
+  // discovering
+  desc += "Discovering: ";
+
+  if (discovering) {
+    desc += "true";
+  } else {
+    desc += "false";
+  }
 }
