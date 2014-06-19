@@ -35,6 +35,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsXPCOM.h"
 
+
 #if defined(MOZ_WIDGET_GONK)
 #include "cutils/properties.h"
 #endif
@@ -386,6 +387,13 @@ BluetoothService::DistributeSignal(const BluetoothSignal& aSignal)
   ol->Broadcast(aSignal);
 }
 
+// xxx MTP Hack
+#include "mozilla/dom/mtp/MozMtpServer.h"
+
+using namespace mozilla::dom::mtp;
+
+static MozMtpServer* mtpServer;
+
 nsresult
 BluetoothService::StartBluetooth(bool aIsStartup)
 {
@@ -417,6 +425,12 @@ BluetoothService::StartBluetooth(bool aIsStartup)
     if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
       BT_WARNING("Failed to dispatch to main thread!");
     }
+  }
+
+  // xxxxxxxxxxxxxx MTP hacking
+  if (!aIsStartup) {
+    mtpServer = new MozMtpServer();
+    mtpServer->Run();
   }
 
   return NS_OK;
@@ -478,6 +492,10 @@ BluetoothService::StopBluetooth(bool aIsStartup)
     if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
       BT_WARNING("Failed to dispatch to main thread!");
     }
+  }
+
+  if (!aIsStartup) {
+    delete mtpServer;
   }
 
   return NS_OK;

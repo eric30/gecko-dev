@@ -57,6 +57,7 @@ PARALLEL_DIRS += [
     'asmjscache',
     'media',
     'messages',
+    'mtp',
     'power',
     'push',
     'quota',

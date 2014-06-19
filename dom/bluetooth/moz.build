@@ -18,7 +18,7 @@ if CONFIG['MOZ_B2G_BT']:
         'ipc/BluetoothChild.cpp',
         'ipc/BluetoothParent.cpp',
         'ipc/BluetoothServiceChildProcess.cpp',
-        'ObexBase.cpp'
+        'ObexBase.cpp',
     ]
 
     if CONFIG['MOZ_B2G_RIL']:
